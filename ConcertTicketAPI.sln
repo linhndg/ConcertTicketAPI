@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35312.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcertTicketAPI", "ConcertTicketAPI\ConcertTicketAPI.csproj", "{64F90C9E-794C-41D2-BDC8-704FF5309EF4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcertTicketAPI.Tests", "ConcertTicketAPI.Tests\ConcertTicketAPI.Tests.csproj", "{A6B74791-DA84-47C2-B7F2-19B4234C039A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{64F90C9E-794C-41D2-BDC8-704FF5309EF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64F90C9E-794C-41D2-BDC8-704FF5309EF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64F90C9E-794C-41D2-BDC8-704FF5309EF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64F90C9E-794C-41D2-BDC8-704FF5309EF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6B74791-DA84-47C2-B7F2-19B4234C039A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6B74791-DA84-47C2-B7F2-19B4234C039A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6B74791-DA84-47C2-B7F2-19B4234C039A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6B74791-DA84-47C2-B7F2-19B4234C039A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8C23737C-85ED-4080-8992-BE39C1C8A8DA}
+	EndGlobalSection
+EndGlobal
