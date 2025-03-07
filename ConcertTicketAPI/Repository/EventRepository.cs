@@ -1,5 +1,9 @@
 ﻿using ConcertTicketAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ConcertTicketAPI.Repositories
 {
@@ -12,22 +16,15 @@ namespace ConcertTicketAPI.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Event>> GetEventsAsync()
+        public async Task AddEventAsync(Event eventEntity)
         {
-            return await _context.Events.Include(e => e.TicketTypes).ToListAsync();
-        }
-
-        public async Task<Event?> GetEventByIdAsync(Guid id)
-        {
-            return await _context.Events
-                .Include(e => e.TicketTypes)
-                .FirstOrDefaultAsync(e => e.Id == id);
-        }
-
-        public async Task CreateEventAsync(Event eventEntity)
-        {
-            await _context.Events.AddAsync(eventEntity);
+            _context.Events.Add(eventEntity);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<Event?> GetEventByIdAsync(Guid eventId)
+        {
+            return await _context.Events.FindAsync(eventId);
         }
 
         public async Task UpdateEventAsync(Event eventEntity)
@@ -36,9 +33,9 @@ namespace ConcertTicketAPI.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> EventExistsAsync(Guid id)
+        public async Task<List<Event>> GetAllEventsAsync()
         {
-            return await _context.Events.AnyAsync(e => e.Id == id);
+            return await _context.Events.ToListAsync();
         }
     }
 }

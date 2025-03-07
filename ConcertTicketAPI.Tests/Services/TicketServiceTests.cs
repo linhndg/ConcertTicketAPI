@@ -1,34 +1,28 @@
-﻿using ConcertTicketAPI.Models;
+﻿using ConcertTicketAPI.DTO;
+using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Models;
 using ConcertTicketAPI.Repositories;
 using ConcertTicketAPI.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace ConcertTicketAPI.Tests.Services
 {
     public class TicketServiceTests
     {
         private readonly Mock<ITicketRepository> _ticketRepositoryMock;
-        private readonly Mock<ITicketTypeRepository> _ticketTypeRepositoryMock;
-        private readonly Mock<IEventRepository> _eventRepositoryMock;
         private readonly Mock<ILogger<TicketService>> _loggerMock;
         private readonly TicketService _ticketService;
 
         public TicketServiceTests()
         {
             _ticketRepositoryMock = new Mock<ITicketRepository>();
-            _ticketTypeRepositoryMock = new Mock<ITicketTypeRepository>();
-            _eventRepositoryMock = new Mock<IEventRepository>();
             _loggerMock = new Mock<ILogger<TicketService>>();
-
-            _ticketService = new TicketService(
-                _ticketRepositoryMock.Object,
-                _ticketTypeRepositoryMock.Object,
-                _eventRepositoryMock.Object,
-                _loggerMock.Object);
+            _ticketService = new TicketService(_ticketRepositoryMock.Object, _loggerMock.Object);
         }
 
         [Fact]
@@ -36,97 +30,88 @@ namespace ConcertTicketAPI.Tests.Services
         {
             // Arrange
             var ticketTypeId = Guid.NewGuid();
-            var eventId = Guid.NewGuid();
-            var quantity = 2;
-            var duration = TimeSpan.FromMinutes(15);
-
-            _ticketTypeRepositoryMock
-                .Setup(repo => repo.GetTicketTypeByIdAsync(ticketTypeId))
-                .ReturnsAsync(new TicketType
-                {
-                    Id = ticketTypeId,
-                    EventId = eventId,
-                    QuantityAvailable = 10
-                });
-
-            _eventRepositoryMock
-                .Setup(repo => repo.GetEventByIdAsync(eventId))
-                .ReturnsAsync(new Event
-                {
-                    Id = eventId,
-                    Capacity = 100
-                });
-
-            _ticketRepositoryMock
-                .Setup(repo => repo.GetReservedOrPurchasedTicketCountAsync(eventId))
-                .ReturnsAsync(90); // 90 already sold/reserved
+            var userId = Guid.NewGuid();
+            var request = new TicketReservationRequestDTO
+            {
+                TicketTypeId = ticketTypeId,
+                Quantity = 2,
+                ReservationDurationMinutes = 15
+            };
 
             var expectedReservationId = Guid.NewGuid();
 
             _ticketRepositoryMock
-                .Setup(repo => repo.ReserveTicketsAsync(ticketTypeId, quantity, duration))
+                .Setup(repo => repo.ReserveTicketsAsync(ticketTypeId, request.Quantity, userId, TimeSpan.FromMinutes(request.ReservationDurationMinutes)))
                 .ReturnsAsync(expectedReservationId);
 
             // Act
-            var result = await _ticketService.ReserveTicketsAsync(ticketTypeId, quantity, duration);
+            var result = await _ticketService.ReserveTicketsAsync(request, userId);
 
             // Assert
             Assert.NotNull(result);
-            Assert.Equal(expectedReservationId, result);
+            Assert.Equal(expectedReservationId, result.ReservationId);
         }
 
         [Fact]
-        public async Task ReserveTicketsAsync_ShouldReturnNull_WhenExceedingEventCapacity()
+        public async Task ReserveTicketsAsync_ShouldReturnNull_WhenNotEnoughTicketsAvailable()
         {
             // Arrange
             var ticketTypeId = Guid.NewGuid();
-            var eventId = Guid.NewGuid();
-            var quantity = 15;
-            var duration = TimeSpan.FromMinutes(15);
-
-            _ticketTypeRepositoryMock
-                .Setup(repo => repo.GetTicketTypeByIdAsync(ticketTypeId))
-                .ReturnsAsync(new TicketType
-                {
-                    Id = ticketTypeId,
-                    EventId = eventId,
-                    QuantityAvailable = 20
-                });
-
-            _eventRepositoryMock
-                .Setup(repo => repo.GetEventByIdAsync(eventId))
-                .ReturnsAsync(new Event
-                {
-                    Id = eventId,
-                    Capacity = 100
-                });
+            var userId = Guid.NewGuid();
+            var request = new TicketReservationRequestDTO
+            {
+                TicketTypeId = ticketTypeId,
+                Quantity = 5,
+                ReservationDurationMinutes = 15
+            };
 
             _ticketRepositoryMock
-                .Setup(repo => repo.GetReservedOrPurchasedTicketCountAsync(eventId))
-                .ReturnsAsync(90); // 90 tickets already reserved/purchased
+                .Setup(repo => repo.ReserveTicketsAsync(ticketTypeId, request.Quantity, userId, TimeSpan.FromMinutes(request.ReservationDurationMinutes)))
+                .ReturnsAsync((Guid?)null);
 
             // Act
-            var result = await _ticketService.ReserveTicketsAsync(ticketTypeId, quantity, duration);
+            var result = await _ticketService.ReserveTicketsAsync(request, userId);
 
             // Assert
             Assert.Null(result);
         }
 
         [Fact]
-        public async Task PurchaseTicketsAsync_ShouldReturnTrue_WhenReservationIsValid()
+        public async Task PurchaseTicketsAsync_ShouldReturnSuccess_WhenReservationIsValid()
         {
             // Arrange
             var reservationId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
+            var request = new TicketPurchaseRequestDTO { ReservationId = reservationId };
 
             _ticketRepositoryMock
-                .Setup(repo => repo.PurchaseTicketsAsync(reservationId))
+                .Setup(repo => repo.PurchaseTicketsAsync(reservationId, userId))
                 .ReturnsAsync(true);
 
             // Act
-            var result = await _ticketService.PurchaseTicketsAsync(reservationId);
+            var result = await _ticketService.PurchaseTicketsAsync(request, userId);
 
             // Assert
-            Assert.True(result);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public async Task PurchaseTicketsAsync_ShouldReturnFailure_WhenReservationIsInvalid()
+        {
+            // Arrange
+            var reservationId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
+            var request = new TicketPurchaseRequestDTO { ReservationId = reservationId };
+
+            _ticketRepositoryMock
+                .Setup(repo => repo.PurchaseTicketsAsync(reservationId, userId))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _ticketService.PurchaseTicketsAsync(request, userId);
+
+            // Assert
+            Assert.False(result.Success);
         }
 
         [Fact]
@@ -134,16 +119,60 @@ namespace ConcertTicketAPI.Tests.Services
         {
             // Arrange
             var reservationId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
 
             _ticketRepositoryMock
-                .Setup(repo => repo.CancelReservationAsync(reservationId))
+                .Setup(repo => repo.CancelReservationAsync(reservationId, userId))
                 .ReturnsAsync(true);
 
             // Act
-            var result = await _ticketService.CancelReservationAsync(reservationId);
+            var result = await _ticketService.CancelReservationAsync(reservationId, userId);
 
             // Assert
             Assert.True(result);
+        }
+
+        [Fact]
+        public async Task CancelReservationAsync_ShouldReturnFalse_WhenReservationIsInvalid()
+        {
+            // Arrange
+            var reservationId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
+
+            _ticketRepositoryMock
+                .Setup(repo => repo.CancelReservationAsync(reservationId, userId))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _ticketService.CancelReservationAsync(reservationId, userId);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task GetUserPurchaseHistoryAsync_ShouldReturnListOfPurchasedTickets()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+            var purchasedTickets = new List<Ticket>
+            {
+                new Ticket { Id = Guid.NewGuid(), TicketType = new TicketType { Event = new Event { Name = "Concert 1" } }, ReservedUntil = DateTime.UtcNow },
+                new Ticket { Id = Guid.NewGuid(), TicketType = new TicketType { Event = new Event { Name = "Concert 2" } }, ReservedUntil = DateTime.UtcNow }
+            };
+
+            _ticketRepositoryMock
+                .Setup(repo => repo.GetUserPurchasedTicketsAsync(userId))
+                .ReturnsAsync(purchasedTickets);
+
+            // Act
+            var result = await _ticketService.GetUserPurchaseHistoryAsync(userId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Contains(result, t => t.EventName == "Concert 1");
+            Assert.Contains(result, t => t.EventName == "Concert 2");
         }
     }
 }

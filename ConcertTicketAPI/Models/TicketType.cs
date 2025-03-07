@@ -33,5 +33,8 @@ namespace ConcertTicketAPI.Models
         /// </summary>
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1.")]
         public int QuantityAvailable { get; set; }
+
+        public Event Event { get; set; } = null!;
+        public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     }
 }

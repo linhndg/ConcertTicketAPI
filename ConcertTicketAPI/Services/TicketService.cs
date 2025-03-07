@@ -1,93 +1,97 @@
-﻿using ConcertTicketAPI.Models;
+﻿using ConcertTicketAPI.DTO;
+using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Models;
 using ConcertTicketAPI.Repositories;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ConcertTicketAPI.Services
 {
     public class TicketService : ITicketService
     {
         private readonly ITicketRepository _ticketRepository;
-        private readonly ITicketTypeRepository _ticketTypeRepository;
-        private readonly IEventRepository _eventRepository;
-        private readonly ILogger<TicketService> _logger; // ✅ Inject Logger
+        private readonly ILogger<TicketService> _logger;
 
-        public TicketService(
-            ITicketRepository ticketRepository,
-            ITicketTypeRepository ticketTypeRepository,
-            IEventRepository eventRepository,
-            ILogger<TicketService> logger) // ✅ Inject Logger in Constructor
+        public TicketService(ITicketRepository ticketRepository, ILogger<TicketService> logger)
         {
             _ticketRepository = ticketRepository;
-            _ticketTypeRepository = ticketTypeRepository;
-            _eventRepository = eventRepository;
             _logger = logger;
         }
 
-        public async Task<Guid?> ReserveTicketsAsync(Guid ticketTypeId, int quantity, TimeSpan reservationDuration)
+        public async Task<TicketReservationResponseDTO?> ReserveTicketsAsync(TicketReservationRequestDTO request, Guid userId)
         {
-            _logger.LogInformation("Attempting to reserve {Quantity} tickets for TicketTypeId {TicketTypeId}", quantity, ticketTypeId);
-
-            var ticketType = await _ticketTypeRepository.GetTicketTypeByIdAsync(ticketTypeId);
-            if (ticketType == null)
+            if (userId == Guid.Empty)
             {
-                _logger.LogWarning("Failed to reserve tickets: TicketTypeId {TicketTypeId} not found", ticketTypeId);
+                _logger.LogWarning("Reservation failed: UserId is required.");
                 return null;
             }
 
-            if (ticketType.QuantityAvailable < quantity)
+            _logger.LogInformation("User {UserId} reserving {Quantity} tickets for TicketTypeId {TicketTypeId}", userId, request.Quantity, request.TicketTypeId);
+
+            var reservationId = await _ticketRepository.ReserveTicketsAsync(request.TicketTypeId, request.Quantity, userId, TimeSpan.FromMinutes(request.ReservationDurationMinutes));
+
+            if (reservationId == null)
             {
-                _logger.LogWarning("Failed to reserve tickets: Only {Available} tickets available for TicketTypeId {TicketTypeId}", ticketType.QuantityAvailable, ticketTypeId);
+                _logger.LogWarning("Failed to reserve tickets: Not enough availability.");
                 return null;
             }
 
-            var eventEntity = await _eventRepository.GetEventByIdAsync(ticketType.EventId);
-            if (eventEntity == null)
+            return new TicketReservationResponseDTO
             {
-                _logger.LogError("Failed to reserve tickets: Event not found for TicketTypeId {TicketTypeId}", ticketTypeId);
-                return null;
-            }
-
-            int reservedOrPurchasedCount = await _ticketRepository.GetReservedOrPurchasedTicketCountAsync(eventEntity.Id);
-            if (reservedOrPurchasedCount + quantity > eventEntity.Capacity)
-            {
-                _logger.LogWarning("Reservation exceeds event capacity for EventId {EventId}", eventEntity.Id);
-                return null;
-            }
-
-            var reservationId = await _ticketRepository.ReserveTicketsAsync(ticketTypeId, quantity, reservationDuration);
-            _logger.LogInformation("Successfully reserved {Quantity} tickets with ReservationId {ReservationId}", quantity, reservationId);
-
-            return reservationId;
+                ReservationId = reservationId.Value,
+                Status = "Reserved",
+                ReservedUntil = DateTime.UtcNow.AddMinutes(request.ReservationDurationMinutes)
+            };
         }
 
-        public async Task<bool> PurchaseTicketsAsync(Guid reservationId)
+        public async Task<TicketPurchaseResponseDTO> PurchaseTicketsAsync(TicketPurchaseRequestDTO request, Guid userId)
         {
-            _logger.LogInformation("Attempting to purchase tickets for ReservationId {ReservationId}", reservationId);
-
-            var success = await _ticketRepository.PurchaseTicketsAsync(reservationId);
-            if (!success)
+            if (userId == Guid.Empty)
             {
-                _logger.LogWarning("Failed to purchase tickets: ReservationId {ReservationId} is invalid or expired", reservationId);
+                _logger.LogWarning("Purchase failed: UserId is required.");
+                return new TicketPurchaseResponseDTO { Success = false };
+            }
+
+            _logger.LogInformation("User {UserId} purchasing ticket for ReservationId {ReservationId}", userId, request.ReservationId);
+
+            var success = await _ticketRepository.PurchaseTicketsAsync(request.ReservationId, userId);
+
+            return new TicketPurchaseResponseDTO { Success = success };
+        }
+
+        public async Task<List<TicketHistoryResponseDTO>> GetUserPurchaseHistoryAsync(Guid userId)
+        {
+            var purchasedTickets = await _ticketRepository.GetUserPurchasedTicketsAsync(userId);
+
+            return purchasedTickets.Select(t => new TicketHistoryResponseDTO
+            {
+                TicketId = t.Id,
+                EventName = t.TicketType.Event.Name,
+                PurchaseDate = t.ReservedUntil ?? DateTime.UtcNow
+            }).ToList();
+        }
+        public async Task<bool> CancelReservationAsync(Guid reservationId, Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                _logger.LogWarning("Cancel failed: UserId is required.");
                 return false;
             }
 
-            _logger.LogInformation("Successfully purchased tickets for ReservationId {ReservationId}", reservationId);
-            return true;
-        }
+            _logger.LogInformation("User {UserId} attempting to cancel reservation {ReservationId}", userId, reservationId);
 
-        public async Task<bool> CancelReservationAsync(Guid reservationId)
-        {
-            _logger.LogInformation("Attempting to cancel reservation for ReservationId {ReservationId}", reservationId);
+            var success = await _ticketRepository.CancelReservationAsync(reservationId, userId);
 
-            var success = await _ticketRepository.CancelReservationAsync(reservationId);
             if (!success)
             {
-                _logger.LogWarning("Failed to cancel reservation: ReservationId {ReservationId} is invalid or expired", reservationId);
-                return false;
+                _logger.LogWarning("Failed to cancel reservation: ReservationId {ReservationId} is invalid or does not belong to UserId {UserId}", reservationId, userId);
             }
 
-            _logger.LogInformation("Successfully canceled reservation for ReservationId {ReservationId}", reservationId);
-            return true;
+            return success;
         }
+
     }
 }

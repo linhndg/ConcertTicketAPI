@@ -1,12 +1,14 @@
-﻿using ConcertTicketAPI.Models;
+﻿using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Models;
 using ConcertTicketAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConcertTicketAPI.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
-public class EventsController : ControllerBase
+[Route("api/events")]
+public class EventsController : BaseController
 {
     private readonly IEventService _eventService;
 
@@ -15,37 +17,37 @@ public class EventsController : ControllerBase
         _eventService = eventService;
     }
 
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> CreateEvent([FromBody] EventRequestDTO request)
+    {
+        var createdEvent = await _eventService.CreateEventAsync(request);
+        return CreatedAtAction(nameof(GetEventDetail), new { eventId = createdEvent.Id }, createdEvent);
+    }
+
+    [HttpPut("{eventId}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateEvent(Guid eventId, [FromBody] EventRequestDTO request)
+    {
+        var updatedEvent = await _eventService.UpdateEventAsync(eventId, request);
+        if (updatedEvent == null) return NotFound("Event not found or unauthorized.");
+        return Ok(updatedEvent);
+    }
+
     [HttpGet]
-    public async Task<IActionResult> GetEvents()
+    [Authorize]
+    public async Task<IActionResult> GetAllEvents()
     {
         var events = await _eventService.GetAllEventsAsync();
         return Ok(events);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetEvent(Guid id)
+    [HttpGet("{eventId}")]
+    [Authorize]
+    public async Task<IActionResult> GetEventDetail(Guid eventId)
     {
-        var eventEntity = await _eventService.GetEventByIdAsync(id);
-        if (eventEntity == null)
-            return NotFound();
-
-        return Ok(eventEntity);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateEvent([FromBody] Event eventEntity)
-    {
-        var createdEvent = await _eventService.CreateEventAsync(eventEntity);
-        return CreatedAtAction(nameof(GetEvent), new { id = createdEvent.Id }, createdEvent);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] Event eventEntity)
-    {
-        var updated = await _eventService.UpdateEventAsync(id, eventEntity);
-        if (!updated)
-            return NotFound();
-
-        return NoContent();
+        var eventDetail = await _eventService.GetEventDetailAsync(eventId);
+        if (eventDetail == null) return NotFound("Event not found.");
+        return Ok(eventDetail);
     }
 }

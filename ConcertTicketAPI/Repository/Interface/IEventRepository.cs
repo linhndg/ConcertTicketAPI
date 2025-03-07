@@ -1,13 +1,15 @@
 ﻿using ConcertTicketAPI.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ConcertTicketAPI.Repositories
 {
     public interface IEventRepository
     {
-        Task<IEnumerable<Event>> GetEventsAsync();
-        Task<Event?> GetEventByIdAsync(Guid id);
-        Task CreateEventAsync(Event eventEntity);
+        Task AddEventAsync(Event eventEntity);
+        Task<Event?> GetEventByIdAsync(Guid eventId);
         Task UpdateEventAsync(Event eventEntity);
-        Task<bool> EventExistsAsync(Guid id);
+        Task<List<Event>> GetAllEventsAsync();
     }
 }

@@ -40,5 +40,8 @@ namespace ConcertTicketAPI.Models
         /// </summary>
         [Range(1, int.MaxValue, ErrorMessage = "Capacity must be at least 1.")]
         public int Capacity { get; set; }
+
+        public ICollection<TicketType> TicketTypes { get; set; } = new List<TicketType>();
+
     }
 }

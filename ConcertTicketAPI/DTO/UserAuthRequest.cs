@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ConcertTicketAPI.Models
+namespace ConcertTicketAPI.DTO
 {
     /// <summary>
     /// Represents a request for user authentication (login or registration).
