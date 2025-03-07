@@ -36,19 +36,30 @@
         /// </summary>
         public Guid TicketTypeId { get; set; }
 
+
+        /// <summary>
+        /// ID of the reservation this ticket belongs to.
+        /// </summary>
+        public Guid ReservationId { get; set; }
+
         /// <summary>
         /// ID of the user who purchased or reserved the ticket (nullable if not assigned yet).
         /// </summary>
-        public Guid? UserId { get; set; }
+        public Guid? UserId { get; set; } 
 
         /// <summary>
         /// Status of the ticket (Reserved, Purchased, Cancelled).
         /// </summary>
-        public string Status { get; set; } = "Reserved";
+        public TicketStatus Status { get; set; }
 
         /// <summary>
         /// Timestamp indicating until when the reservation is valid.
         /// </summary>
         public DateTime? ReservedUntil { get; set; }
+
+        /// <summary>
+        /// Navigation property to access the ticket type details.
+        /// </summary>
+        public TicketType TicketType { get; set; } = null!;
     }
 }

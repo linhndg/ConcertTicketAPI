@@ -1,5 +1,10 @@
-﻿using ConcertTicketAPI.Models;
+﻿using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Models;
 using ConcertTicketAPI.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ConcertTicketAPI.Services
 {
@@ -12,31 +17,84 @@ namespace ConcertTicketAPI.Services
             _eventRepository = eventRepository;
         }
 
-        public async Task<IEnumerable<Event>> GetAllEventsAsync()
+        public async Task<EventResponseDTO> CreateEventAsync(EventRequestDTO request)
         {
-            return await _eventRepository.GetEventsAsync();
+            var newEvent = new Event
+            {
+                Id = Guid.NewGuid(),
+                Name = request.Name,
+                Description = request.Description,
+                Date = request.Date,
+                Venue = request.Venue,
+                Capacity = request.Capacity
+            };
+
+            await _eventRepository.AddEventAsync(newEvent);
+
+            return new EventResponseDTO
+            {
+                Id = newEvent.Id,
+                Name = newEvent.Name,
+                Description = newEvent.Description,
+                Date = newEvent.Date,
+                Venue = newEvent.Venue,
+                Capacity = newEvent.Capacity,
+            };
         }
 
-        public async Task<Event?> GetEventByIdAsync(Guid id)
+        public async Task<EventResponseDTO?> UpdateEventAsync(Guid eventId, EventRequestDTO request)
         {
-            return await _eventRepository.GetEventByIdAsync(id);
+            var existingEvent = await _eventRepository.GetEventByIdAsync(eventId);
+            if (existingEvent == null)
+                return null;
+
+            existingEvent.Name = request.Name;
+            existingEvent.Description = request.Description;
+            existingEvent.Date = request.Date;
+            existingEvent.Venue = request.Venue;
+            existingEvent.Capacity = request.Capacity;
+
+            await _eventRepository.UpdateEventAsync(existingEvent);
+
+            return new EventResponseDTO
+            {
+                Id = existingEvent.Id,
+                Name = existingEvent.Name,
+                Description = existingEvent.Description,
+                Date = existingEvent.Date,
+                Venue = existingEvent.Venue,
+                Capacity = existingEvent.Capacity
+            };
         }
 
-        public async Task<Event> CreateEventAsync(Event eventEntity)
+        public async Task<List<EventResponseDTO>> GetAllEventsAsync()
         {
-            eventEntity.Id = Guid.NewGuid();
-            await _eventRepository.CreateEventAsync(eventEntity);
-            return eventEntity;
+            var events = await _eventRepository.GetAllEventsAsync();
+            return events.Select(e => new EventResponseDTO
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Description = e.Description,
+                Date = e.Date,
+                Venue = e.Venue,
+                Capacity = e.Capacity
+            }).ToList();
         }
 
-        public async Task<bool> UpdateEventAsync(Guid id, Event eventEntity)
+        public async Task<EventResponseDTO?> GetEventDetailAsync(Guid eventId)
         {
-            if (!await _eventRepository.EventExistsAsync(id))
-                return false;
+            var eventEntity = await _eventRepository.GetEventByIdAsync(eventId);
+            if (eventEntity == null) return null;
 
-            eventEntity.Id = id;
-            await _eventRepository.UpdateEventAsync(eventEntity);
-            return true;
+            return new EventResponseDTO
+            {
+                Id = eventEntity.Id,
+                Name = eventEntity.Name,
+                Description = eventEntity.Description,
+                Date = eventEntity.Date,
+                Venue = eventEntity.Venue,
+                Capacity = eventEntity.Capacity
+            };
         }
     }
 }

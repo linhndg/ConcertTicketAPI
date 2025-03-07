@@ -1,9 +1,16 @@
-﻿namespace ConcertTicketAPI.Services
+﻿using ConcertTicketAPI.DTOs;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using ConcertTicketAPI.DTO;
+
+namespace ConcertTicketAPI.Services
 {
     public interface ITicketService
     {
-        Task<Guid?> ReserveTicketsAsync(Guid ticketTypeId, int quantity, TimeSpan reservationDuration);
-        Task<bool> PurchaseTicketsAsync(Guid reservationId);
-        Task<bool> CancelReservationAsync(Guid reservationId);
+        Task<TicketReservationResponseDTO?> ReserveTicketsAsync(TicketReservationRequestDTO request, Guid userId);
+        Task<TicketPurchaseResponseDTO> PurchaseTicketsAsync(TicketPurchaseRequestDTO request, Guid userId);
+        Task<List<TicketHistoryResponseDTO>> GetUserPurchaseHistoryAsync(Guid userId);
+        Task<bool> CancelReservationAsync(Guid reservationId, Guid userId);
     }
 }

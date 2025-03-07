@@ -1,66 +1,33 @@
-﻿using ConcertTicketAPI.Models;
-using ConcertTicketAPI.Repositories;
+﻿using ConcertTicketAPI.Controllers;
+using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ConcertTicketAPI.Controllers;
-
-[Route("api")]
 [ApiController]
-public class TicketTypesController : ControllerBase
+[Route("api/tickettypes")]
+public class TicketTypesController : BaseController
 {
-    private readonly ITicketTypeRepository _ticketTypeRepository;
-    private readonly IEventRepository _eventRepository;
+    private readonly ITicketTypeService _ticketTypeService;
 
-    public TicketTypesController(ITicketTypeRepository ticketTypeRepository, IEventRepository eventRepository)
+    public TicketTypesController(ITicketTypeService ticketTypeService)
     {
-        _ticketTypeRepository = ticketTypeRepository;
-        _eventRepository = eventRepository;
+        _ticketTypeService = ticketTypeService;
     }
 
-    [HttpPost("events/{eventId}/ticket-types")]
-    public async Task<IActionResult> CreateTicketType(Guid eventId, [FromBody] TicketType ticketType)
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> AddTicketType([FromBody] TicketTypeRequestDTO request)
     {
-        if (!await _eventRepository.EventExistsAsync(eventId))
-            return NotFound("Event not found.");
-
-        ticketType.Id = Guid.NewGuid();
-        ticketType.EventId = eventId;
-
-        await _ticketTypeRepository.CreateTicketTypeAsync(ticketType);
-
-        return CreatedAtAction(nameof(GetTicketType), new { id = ticketType.Id }, ticketType);
+        var ticketType = await _ticketTypeService.AddTicketTypeAsync(request);
+        return CreatedAtAction(nameof(GetTicketTypesByEvent), new { eventId = ticketType.EventId }, ticketType);
     }
 
-    [HttpGet("ticket-types/{id}")]
-    public async Task<IActionResult> GetTicketType(Guid id)
-    {
-        var ticketType = await _ticketTypeRepository.GetTicketTypeByIdAsync(id);
-        if (ticketType == null)
-            return NotFound();
-
-        return Ok(ticketType);
-    }
-
-    [HttpPut("ticket-types/{id}")]
-    public async Task<IActionResult> UpdateTicketType(Guid id, [FromBody] TicketType ticketType)
-    {
-        if (id != ticketType.Id)
-            return BadRequest();
-
-        if (!await _ticketTypeRepository.TicketTypeExistsAsync(id))
-            return NotFound();
-
-        await _ticketTypeRepository.UpdateTicketTypeAsync(ticketType);
-        return NoContent();
-    }
-
-    [HttpGet("events/{eventId}/ticket-types")]
+    [HttpGet("{eventId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetTicketTypesByEvent(Guid eventId)
     {
-        if (!await _eventRepository.EventExistsAsync(eventId))
-            return NotFound("Event not found.");
-
-        var ticketTypes = await _ticketTypeRepository.GetTicketTypesByEventAsync(eventId);
+        var ticketTypes = await _ticketTypeService.GetTicketTypesByEventAsync(eventId);
         return Ok(ticketTypes);
     }
 }
