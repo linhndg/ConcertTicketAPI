@@ -1,5 +1,9 @@
 ﻿using ConcertTicketAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ConcertTicketAPI.Repositories
 {
@@ -12,33 +16,39 @@ namespace ConcertTicketAPI.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<TicketType>> GetTicketTypesByEventAsync(Guid eventId)
+        public async Task<TicketType?> GetTicketTypeByIdAsync(Guid ticketTypeId)
+        {
+            return await _context.TicketTypes.FindAsync(ticketTypeId);
+        }
+
+        public async Task<List<TicketType>> GetTicketTypesByEventAsync(Guid eventId)
         {
             return await _context.TicketTypes
                 .Where(t => t.EventId == eventId)
                 .ToListAsync();
         }
 
-        public async Task<TicketType?> GetTicketTypeByIdAsync(Guid id)
+        public async Task<TicketType> AddTicketTypeAsync(TicketType ticketType)
         {
-            return await _context.TicketTypes.FindAsync(id);
-        }
-
-        public async Task CreateTicketTypeAsync(TicketType ticketType)
-        {
-            await _context.TicketTypes.AddAsync(ticketType);
+            _context.TicketTypes.Add(ticketType);
             await _context.SaveChangesAsync();
+            return ticketType;
         }
 
-        public async Task UpdateTicketTypeAsync(TicketType ticketType)
+        public async Task<bool> UpdateTicketTypeAsync(TicketType ticketType)
         {
             _context.TicketTypes.Update(ticketType);
-            await _context.SaveChangesAsync();
+            return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> TicketTypeExistsAsync(Guid id)
+        public async Task<bool> DeleteTicketTypeAsync(Guid ticketTypeId)
         {
-            return await _context.TicketTypes.AnyAsync(t => t.Id == id);
+            var ticketType = await GetTicketTypeByIdAsync(ticketTypeId);
+            if (ticketType == null)
+                return false;
+
+            _context.TicketTypes.Remove(ticketType);
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

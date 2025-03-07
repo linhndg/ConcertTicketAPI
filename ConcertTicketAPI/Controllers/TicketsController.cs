@@ -1,11 +1,13 @@
-﻿using ConcertTicketAPI.Services;
+﻿using ConcertTicketAPI.Controllers;
+using ConcertTicketAPI.DTO;
+using ConcertTicketAPI.DTOs;
+using ConcertTicketAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ConcertTicketAPI.Controllers;
-
-[Route("api/[controller]")]
 [ApiController]
-public class TicketsController : ControllerBase
+[Route("api/tickets")]
+public class TicketsController : BaseController
 {
     private readonly ITicketService _ticketService;
 
@@ -15,43 +17,55 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("reserve")]
-    public async Task<IActionResult> ReserveTickets([FromBody] ReserveTicketsRequest request)
+    [Authorize]
+    public async Task<IActionResult> ReserveTickets([FromBody] TicketReservationRequestDTO request)
     {
-        var reservationId = await _ticketService.ReserveTicketsAsync(
-            request.TicketTypeId,
-            request.Quantity,
-            TimeSpan.FromMinutes(request.ReservationDurationMinutes));
+        Guid userId = GetUserIdFromToken();
+        var reservation = await _ticketService.ReserveTicketsAsync(request, userId);
 
-        if (reservationId == null)
+        if (reservation == null)
             return BadRequest("Unable to reserve tickets (check availability).");
 
-        return Ok(new { ReservationId = reservationId });
+        return Ok(reservation);
     }
 
-    [HttpPost("purchase/{reservationId}")]
-    public async Task<IActionResult> PurchaseTickets(Guid reservationId)
+    [HttpPost("purchase")]
+    [Authorize]
+    public async Task<IActionResult> PurchaseTickets([FromBody] TicketPurchaseRequestDTO request)
     {
-        var result = await _ticketService.PurchaseTicketsAsync(reservationId);
-        if (!result)
-            return BadRequest("Unable to purchase tickets (reservation invalid or expired).");
+        Guid userId = GetUserIdFromToken();
+        var purchaseResult = await _ticketService.PurchaseTicketsAsync(request, userId);
 
-        return Ok("Tickets purchased successfully.");
+        if (!purchaseResult.Success)
+            return BadRequest("Unable to complete ticket purchase.");
+
+        return Ok(purchaseResult);
     }
 
-    [HttpPost("cancel/{reservationId}")]
-    public async Task<IActionResult> CancelReservation(Guid reservationId)
+    [HttpGet("history")]
+    [Authorize]
+    public async Task<IActionResult> GetUserPurchaseHistory()
     {
-        var result = await _ticketService.CancelReservationAsync(reservationId);
-        if (!result)
-            return BadRequest("Unable to cancel reservation.");
+        Guid userId = GetUserIdFromToken();
+        var history = await _ticketService.GetUserPurchaseHistoryAsync(userId);
 
-        return Ok("Reservation cancelled successfully.");
+        if (history.Count == 0)
+            return NotFound("No ticket purchases found.");
+
+        return Ok(history);
     }
-}
 
-public class ReserveTicketsRequest
-{
-    public Guid TicketTypeId { get; set; }
-    public int Quantity { get; set; }
-    public int ReservationDurationMinutes { get; set; }
+    [HttpPost("cancel")]
+    [Authorize]
+    public async Task<IActionResult> CancelReservation([FromBody] TicketCancelRequestDTO request)
+    {
+        Guid userId = GetUserIdFromToken();
+        var success = await _ticketService.CancelReservationAsync(request.ReservationId, userId);
+
+        if (!success)
+            return BadRequest("Unable to cancel reservation (check ownership or expiration).");
+
+        return Ok(new { message = "Reservation successfully cancelled." });
+    }
+
 }

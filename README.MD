@@ -1,10 +1,10 @@
 📌 **Project Overview**<br>
-Due to the limited time for the assignment, I built a simplified project to implement the basic flow of the requirements.  
-This project includes the ability to create events, ticket types, tickets, and users.  
+Due to the limited time for the assignment, I built a simplified project to implement the basic flow of the requirements.
+This project includes the ability to create events, ticket types, tickets, and users.
 
-The Ticket Type entity is an additional feature not explicitly required, but I included it because I believe it is helpful for managing different ticket categories for an event (e.g., VIP, General Admission).  
+The Ticket Type entity is an additional feature not explicitly required, but I included it because I believe it is helpful for managing different ticket categories for an event (e.g., VIP, General Admission).
 
-Since many details were not specified in the requirements, I made assumptions about most fields and business rules in this project.  
+Since many details were not specified in the requirements, I made assumptions about most fields and business rules in this project.
 <br>
 
 🚀 **Features**<br>
@@ -33,7 +33,7 @@ Since many details were not specified in the requirements, I made assumptions ab
 | In-Memory Database | Stores event & ticket data |
 | JWT Authentication | Secures user authentication |
 | Swagger (Swashbuckle) | API documentation & testing |
-
+ 
 📂 **Project Structure**<br>
 📦 **ConcertTicketAPI**<br>
  ┣ 📂 **Controllers**            # API Controllers  <br>

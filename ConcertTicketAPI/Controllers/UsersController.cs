@@ -1,4 +1,4 @@
-﻿using ConcertTicketAPI.Models;
+﻿using ConcertTicketAPI.DTO;
 using ConcertTicketAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,13 +36,6 @@ public class UsersController : ControllerBase
             return Unauthorized("Invalid username or password.");
 
         return Ok(new { Token = token });
-    }
-
-    [HttpGet("{userId}/tickets")]
-    public async Task<IActionResult> GetUserTickets(Guid userId)
-    {
-        var tickets = await _userService.GetUserTicketsAsync(userId);
-        return Ok(tickets);
     }
 }
 
