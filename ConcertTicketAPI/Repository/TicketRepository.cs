@@ -48,15 +48,19 @@ namespace ConcertTicketAPI.Repositories
 
         public async Task<bool> PurchaseTicketsAsync(Guid reservationId, Guid userId)
         {
-            var reservation = await _context.Tickets
+            var tickets = await _context.Tickets
                 .Where(t => t.ReservationId == reservationId && t.Status == TicketStatus.Reserved)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (reservation == null)
+            if (tickets.Count == 0)
                 return false;
 
-            reservation.Status = TicketStatus.Purchased;
-            reservation.UserId = userId;
+            foreach (var ticket in tickets)
+            {
+                ticket.Status = TicketStatus.Purchased;
+                ticket.UserId = userId;
+            }
+            
 
             await _context.SaveChangesAsync();
             return true;
@@ -73,19 +77,22 @@ namespace ConcertTicketAPI.Repositories
 
         public async Task<bool> CancelReservationAsync(Guid reservationId, Guid userId)
         {
-            var reservation = await _context.Tickets
-                .FirstOrDefaultAsync(t => t.ReservationId == reservationId && t.Status == TicketStatus.Reserved && t.UserId == userId);
+            var reservations = await _context.Tickets
+                .Where(t => t.ReservationId == reservationId && t.Status == TicketStatus.Reserved && t.UserId == userId).ToListAsync();
 
-            if (reservation == null)
-                return false; 
+            if (reservations.Count == 0)
+                return false;
 
-            reservation.Status = TicketStatus.Cancelled;
-            reservation.UserId = null;
-
-            var ticketType = await _context.TicketTypes.FindAsync(reservation.TicketTypeId);
-            if (ticketType != null)
+            foreach (var ticket in reservations)
             {
-                ticketType.QuantityAvailable += 1;
+                ticket.Status = TicketStatus.Cancelled;
+                ticket.UserId = null;
+                var ticketType = await _context.TicketTypes.FindAsync(ticket.TicketTypeId);
+                if (ticketType != null)
+                {
+                    ticketType.QuantityAvailable += 1;
+                }
+
             }
 
             await _context.SaveChangesAsync();

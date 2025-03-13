@@ -42,7 +42,7 @@ namespace ConcertTicketAPI.Services
             return new TicketReservationResponseDTO
             {
                 ReservationId = reservationId.Value,
-                Status = "Reserved",
+                Status = TicketStatus.Reserved.ToString(),
                 ReservedUntil = DateTime.UtcNow.AddMinutes(request.ReservationDurationMinutes)
             };
         }
@@ -70,7 +70,9 @@ namespace ConcertTicketAPI.Services
             {
                 TicketId = t.Id,
                 EventName = t.TicketType.Event.Name,
-                PurchaseDate = t.ReservedUntil ?? DateTime.UtcNow
+                PurchaseDate = t.ReservedUntil ?? DateTime.UtcNow,
+                TicketTypeName = t.TicketType.Name
+
             }).ToList();
         }
         public async Task<bool> CancelReservationAsync(Guid reservationId, Guid userId)

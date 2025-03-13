@@ -16,6 +16,11 @@
         public string EventName { get; set; } = null!;
 
         /// <summary>
+        /// The name of the ticket type.
+        /// </summary>
+        public string TicketTypeName { get; set; } = null!;
+
+        /// <summary>
         /// The purchase date and time.
         /// </summary>
         public DateTime PurchaseDate { get; set; }

@@ -13,7 +13,7 @@
         /// <summary>
         /// Status of the reservation.
         /// </summary>
-        public string Status { get; set; } = "Reserved";
+        public string Status { get; set; }
 
         /// <summary>
         /// The expiration time for the reservation.
