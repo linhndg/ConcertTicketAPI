@@ -30,10 +30,29 @@ namespace ConcertTicketAPI.Repositories
 
         public async Task<TicketType> AddTicketTypeAsync(TicketType ticketType)
         {
+            var eventEntity = await _context.Events
+                .Where(e => e.Id == ticketType.EventId)
+                .FirstOrDefaultAsync();
+
+            if (eventEntity == null)
+            {
+                throw new InvalidOperationException("Event not found.");
+            }
+
+            var totalTicket = await _context.TicketTypes
+                .Where(tt => tt.EventId == ticketType.EventId)
+                .SumAsync(x => x.QuantityAvailable);
+
+            if (totalTicket + ticketType.QuantityAvailable > eventEntity.Capacity)
+            {
+                throw new InvalidOperationException("Adding this ticket type would exceed the event capacity.");
+            }
+
             _context.TicketTypes.Add(ticketType);
             await _context.SaveChangesAsync();
             return ticketType;
         }
+
 
         public async Task<bool> UpdateTicketTypeAsync(TicketType ticketType)
         {
